@@ -97,22 +97,22 @@ const readSingleSubtaskFromQueue = () => {
 
 console.log('Worker Starting');
 
-registerWorker().then((result) => {
-    console.log("Registered Worker: ", result);
-
-    workerId = result.id;
-    client.send(JSON.stringify({
-        sender: 'worker',
-        type: 'WORKER_READY',
-        data: workerId
-    }));
-}).catch((e) => {
-    console.log('Error Registering Worker');
-    console.log(e);
-});
-
 client.onopen = () => {
     console.log('WebSocket Client Connected');
+    registerWorker().then((result) => {
+        console.log("Registered Worker: ", result);
+    
+        workerId = result.id;
+        client.send(JSON.stringify({
+            sender: 'worker',
+            type: 'WORKER_READY',
+            data: workerId
+        }));
+    }).catch((e) => {
+        console.log('Error Registering Worker');
+        console.log(e);
+    });
+    
 };
 
 client.onmessage = (message: any) => {
