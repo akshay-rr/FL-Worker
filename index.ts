@@ -3,7 +3,7 @@ import { registerWorker, submitSubTaskResult } from "./utils/taskUtils";
 // Load the AWS SDK for Node.js
 const AWS = require('aws-sdk');
 
-const { getSubtaskData, getFileData } = require('./utils/taskUtils');
+const { getFileData } = require('./utils/taskUtils');
 
 const { w3cwebsocket } = require('websocket');
 
@@ -11,7 +11,7 @@ const { w3cwebsocket } = require('websocket');
 let client: any;
 
 try {
-    client = new w3cwebsocket('ws://127.0.0.1:5000');
+    client = new w3cwebsocket('ws://host.docker.internal:5000');
 } catch (e) {
     console.log(e);
 }
@@ -26,8 +26,6 @@ AWS.config.update({region: 'ap-south-1'});
 const sqs = new AWS.SQS({apiVersion: '2012-11-05'});
 
 const queueUrl = "https://sqs.ap-south-1.amazonaws.com/617770264029/dynamofl.fifo";
-
-// const client = new w3cwebsocket('ws://127.0.0.1:5000');
 
 const readSingleSubtaskFromQueue = () => {
     const params = {
@@ -52,8 +50,6 @@ const readSingleSubtaskFromQueue = () => {
             const fileId = parseInt(dataMessage.fileId.StringValue);
             const taskId = parseInt(dataMessage.taskId.StringValue);
 
-            // console.log(`Received Data: ${taskId} - ${fileId}`);
-
             const deleteParams = {
                 QueueUrl: queueUrl,
                 ReceiptHandle: data.Messages[0].ReceiptHandle
@@ -68,14 +64,10 @@ const readSingleSubtaskFromQueue = () => {
 
             getFileData(taskId, fileId).then((data: any) => {
 
-                // console.log('Data: ', data);
-
-                // console.log('DataLength: ', data.length);
-
                 const dataLength = data.length;
                 const dataSum = data.reduce((partialSum: any, a: any) => partialSum + a, 0);
                 const avg = dataSum/dataLength;
-                console.log('AVG: ', avg);
+
                 submitSubTaskResult(taskId, fileId, avg, dataLength).then((response) => {
                     console.log(response);
 
@@ -84,6 +76,7 @@ const readSingleSubtaskFromQueue = () => {
                         type: 'WORKER_READY',
                         data: workerId
                     }));
+
                 }).catch((e) => {
                     console.log('Error Submitting File Result');
                     console.log(e);
@@ -115,6 +108,7 @@ registerWorker().then((result) => {
     }));
 }).catch((e) => {
     console.log('Error Registering Worker');
+    console.log(e);
 });
 
 client.onopen = () => {
@@ -123,8 +117,6 @@ client.onopen = () => {
 
 client.onmessage = (message: any) => {
     const dataFromServer = JSON.parse(message.data);
-    console.log('got reply! ', dataFromServer);
-
     if (dataFromServer.type === 'ACTIVATE_WORKER' && dataFromServer.data === workerId) {
         console.log(`Worker ${workerId} ACTIVATED`);
         readSingleSubtaskFromQueue();

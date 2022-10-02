@@ -1,7 +1,7 @@
 const axios = require('axios');
 const querystring = require('querystring');
 
-const API_BASE_URL = "http://localhost:5000/"
+const API_BASE_URL = "http://host.docker.internal:5000/"
 
 export const submitSubTaskResult = async (taskId: number, fileId: number, result: number, fileSize: number) => {
     const formBody = querystring.stringify({
